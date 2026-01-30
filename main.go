@@ -1,8 +1,11 @@
 package main
 
-import "session/session"
+import (
+	"session/interfaces"
+)
 
 func main() {
 	// session.SessionID()
-	session.SessionIdUsingDB()
+	// session.SessionIdUsingDB()
+	interfaces.Interfaces()
 }
