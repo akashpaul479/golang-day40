@@ -15,7 +15,7 @@ import (
 var db *sql.DB
 
 // connect to database
-func ConnectDB() {
+func ConnectDB() (*sql.DB, error) {
 	var err error
 	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/akash")
 	if err != nil {
@@ -25,7 +25,7 @@ func ConnectDB() {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to database...")
-
+	return db, err
 }
 
 // Generate session id
@@ -42,7 +42,7 @@ func Loginhandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SessionID := GenerateSessionId()
-	expires := time.Now().Add(1 * time.Hour)
+	expires := time.Now().UTC().Add(1 * time.Hour)
 
 	_, err := db.Exec("INSERT INTO sessions (session_id , username , expires_at) VALUES (? , ? , ?)", SessionID, "Akash", expires)
 	if err != nil {
@@ -66,7 +66,7 @@ func Homehandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var username string
-	err = db.QueryRow("SELECT username FROM sessions WHERE session_id=? AND expires_at >NOW()", cookie.Value).Scan(&username)
+	err = db.QueryRow("SELECT username FROM sessions WHERE session_id=? AND expires_at > UTC_TIMESTAMP()", cookie.Value).Scan(&username)
 	if err != nil {
 		http.Error(w, "Invalid session", http.StatusUnauthorized)
 		return
@@ -91,7 +91,11 @@ func Logouthandler(w http.ResponseWriter, r *http.Request) {
 
 // main func
 func SessionIdUsingDB() {
-	ConnectDB()
+	var err error
+	db, err = ConnectDB()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	http.HandleFunc("/login", Loginhandler)
 	http.HandleFunc("/home", Homehandler)
